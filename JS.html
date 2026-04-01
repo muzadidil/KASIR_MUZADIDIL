@@ -8,7 +8,7 @@
 
   function formatRp(angka) { return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, "."); }
 
-  // --- FUNGSI TAB 1: KASIR ---
+  // --- FUNGSI TAB 1: KASIR & PENGISIAN DROPDOWN ---
   function muatDropdown() {
     google.script.run.withSuccessHandler(function(data) {
       masterDataBarang = data.barangDict; 
@@ -22,6 +22,17 @@
       let selCust = document.getElementById('listCustomer');
       selCust.innerHTML = '';
       data.customer.forEach(c => selCust.innerHTML += `<option value="${c}">`);
+
+      // Isi Dropdown Kategori di Tab Master
+      let selKategori = document.getElementById('mKategori');
+      selKategori.innerHTML = '<option value="">Pilih Kategori...</option>';
+      data.kategori.forEach(k => selKategori.innerHTML += `<option value="${k}">${k}</option>`);
+
+      // Isi Dropdown Unit di Tab Master
+      let selUnit = document.getElementById('mUnit');
+      selUnit.innerHTML = '<option value="">Pilih Unit...</option>';
+      data.unit.forEach(u => selUnit.innerHTML += `<option value="${u}">${u}</option>`);
+
     }).getDropdownData();
   }
 
@@ -200,13 +211,6 @@
   function closeModal() { document.getElementById('successModal').classList.add('hidden'); document.getElementById('successModal').classList.remove('flex'); }
 
   // --- FUNGSI TAB 2 & 3: FORM MASTER DAN CUSTOMER ---
-  function cekDropdownBaru(idSelect, idInputBox) {
-    let sel = document.getElementById(idSelect).value;
-    let box = document.getElementById(idInputBox);
-    if (sel === "NEW") { box.classList.remove('hidden'); box.required = true; } 
-    else { box.classList.add('hidden'); box.required = false; }
-  }
-
   function submitCust(e) {
     e.preventDefault();
     let btn = document.getElementById('btnSimpanCust');
@@ -224,20 +228,18 @@
     let btn = document.getElementById('btnSimpanMaster');
     btn.innerText = "Menyimpan..."; btn.disabled = true;
 
-    let valKategori = document.getElementById('mKategori').value;
-    if(valKategori === "NEW") valKategori = document.getElementById('mKategoriBaru').value;
-    
-    let valUnit = document.getElementById('mUnit').value;
-    if(valUnit === "NEW") valUnit = document.getElementById('mUnitBaru').value;
-
+    // Sekarang tinggal langsung ambil dari dropdown
     let payload = {
-      kode: document.getElementById('mKode').value, nama: document.getElementById('mNama').value,
-      kategori: valKategori, unit: valUnit, hargaBeli: document.getElementById('mBeli').value, hargaJual: document.getElementById('mJual').value
+      kode: document.getElementById('mKode').value, 
+      nama: document.getElementById('mNama').value,
+      kategori: document.getElementById('mKategori').value, 
+      unit: document.getElementById('mUnit').value, 
+      hargaBeli: document.getElementById('mBeli').value, 
+      hargaJual: document.getElementById('mJual').value
     };
 
     google.script.run.withSuccessHandler((res) => {
       alert(res); document.getElementById('formMaster').reset();
-      document.getElementById('mKategoriBaru').classList.add('hidden'); document.getElementById('mUnitBaru').classList.add('hidden');
       btn.innerText = "Simpan Barang"; btn.disabled = false;
       muatDropdown(); 
     }).simpanBarangBaru(payload);
@@ -328,7 +330,6 @@
     dataTersaring.forEach(row => {
       let badgeClass = row.jenis === "IN" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700";
       
-      // Tambahkan efek cursor-pointer dan fungsi klik ganda (ondblclick)
       tbody.innerHTML += `
         <tr ondblclick="tampilkanNotaLama('${row.nota}')" class="border-b border-gray-50 hover:bg-purple-50/50 transition-colors cursor-pointer" title="Klik 2x untuk lihat struk">
           <td class="p-3">
@@ -349,13 +350,11 @@
     lucide.createIcons();
   }
 
-  // FUNGSI BARU: Menampilkan kembali nota lama dari data mutasi
   function tampilkanNotaLama(noNota) {
-    // Ambil semua barang yang punya nomor nota yang sama
     let items = dataMutasiGlobal.filter(row => row.nota === noNota);
     if(items.length === 0) return;
 
-    let info = items[0]; // Ambil data header dari baris pertama
+    let info = items[0]; 
     document.getElementById('strukNota').innerText = info.nota;
     document.getElementById('strukTanggal').innerText = info.tanggal + " " + info.waktu;
     document.getElementById('strukCustomer').innerText = info.customer;
@@ -374,7 +373,6 @@
     let strukGrandTotal = 0;
 
     items.forEach(item => {
-      // Bersihkan teks harga dari huruf/titik agar bisa dihitung (misal "Rp 15.000" jadi 15000)
       let hargaSatuan = parseInt(item.harga.toString().replace(/[^0-9]/g, '')) || 0;
       let qty = parseInt(item.qty) || 0;
       let subtotal = hargaSatuan * qty;
@@ -385,7 +383,6 @@
 
     document.getElementById('strukTotal').innerText = "Rp " + formatRp(strukGrandTotal);
 
-    // Tampilkan modal struk
     document.getElementById('successModal').classList.remove('hidden');
     document.getElementById('successModal').classList.add('flex');
   }
